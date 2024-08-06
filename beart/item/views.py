@@ -3,6 +3,12 @@ from django.shortcuts import render,get_object_or_404,redirect
 from .models import Item,Category
 from django.db.models import Q
 from .forms import newItemForm,EditItemForm
+import logging
+
+logging.basicConfig(level = logging.INFO)
+
+logger = logging.getLogger('django')
+
 # Create your views here.
 def browse(request):
     item= Item.objects.filter(id_sold=False)
@@ -44,7 +50,8 @@ def newItem(request):
         form = newItemForm()
 
     return render (request,'item/newitem.html',{
-        'form': form
+        'form': form,
+        'title': 'new Item'
     })
 
 @login_required
@@ -57,17 +64,24 @@ def delete(request,pk):
 @login_required
 def editItem(request,pk):
     item = get_object_or_404(Item,pk=pk,created_by = request.user)
+    logger.info(f"item is received {item}")
 
     if request.method == 'POST':
+        logger.info("post request received")
         form = EditItemForm(request.POST,request.FILES,instance=item)
 
         if form.is_valid():
-            form.save()
-
-            return redirect('item:detail',pk=item.id)
+            logger.info("is valid")
+            item = form.save(commit=False)
+            item.save()
+            logger.info("saving the form")
+            return redirect('item:detail',pk=pk)
+        else:
+            print(form.errors)  # Debugging line
     else:
         form = EditItemForm(instance=item)
+        logger.info("Form initialized with instance data")
 
     return render (request,'item/newitem.html',{
-        'form': form
+        'form': form,
     })
